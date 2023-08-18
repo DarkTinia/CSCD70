@@ -1,5 +1,6 @@
 #pragma once // NOLINT(llvm-header-guard)
 
+#include <llvm-16/llvm/IR/Value.h>
 #include <unordered_map>
 #include <vector>
 

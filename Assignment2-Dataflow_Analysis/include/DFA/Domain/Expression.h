@@ -1,6 +1,7 @@
 #pragma once // NOLINT(llvm-header-guard)
 
 #include <llvm/IR/InstVisitor.h>
+#include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
@@ -24,7 +25,16 @@ struct Expression final : DomainBase<Expression> {
   bool operator==(const Expression &Other) const final {
 
     /// @todo(CSCD70) Please complete this method.
-    return false;
+    bool Result = false;
+    if (this->Opcode == Other.Opcode) {
+      if ((this->LHS == Other.LHS) && (this->RHS == Other.RHS)) {
+        Result = true;
+      }
+      if (llvm::BinaryOperator::isCommutative(this->Opcode)) {
+        Result |= ((this->LHS == Other.RHS) && (this->RHS == Other.LHS));
+      }
+    }
+    return Result;
   }
 
   bool contain(const llvm::Value *const Val) const final {

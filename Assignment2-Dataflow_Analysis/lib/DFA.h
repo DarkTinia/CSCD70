@@ -6,6 +6,9 @@
 #include <DFA/Flow/ForwardAnalysis.h>
 #include <DFA/MeetOp.h>
 
+#include <llvm/IR/Function.h>
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/InstrTypes.h>
 #include <llvm/IR/PassManager.h>
 
 class AvailExprs final : public dfa::ForwardAnalysis<dfa::Expression, dfa::Bool,
@@ -17,6 +20,8 @@ private:
 
   friend llvm::AnalysisInfoMixin<AvailExprs>;
   static llvm::AnalysisKey Key;
+
+  void initValue(llvm::Function &F);
 
   std::string getName() const final { return "AvailExprs"; }
   bool transferFunc(const llvm::Instruction &, const DomainVal_t &,

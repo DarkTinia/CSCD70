@@ -1,5 +1,7 @@
 #pragma once // NOLINT(llvm-header-guard)
 
+#include "DFA/Domain/Expression.h"
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/PassManager.h>
@@ -37,6 +39,8 @@ protected:
   /// @name Print utility functions
   /// @{
 
+  virtual void initValue(llvm::Function &F) = 0;
+
   std::string stringifyDomainWithMask(const DomainVal_t &Mask) const {
     std::string StringBuf;
     llvm::raw_string_ostream Strout(StringBuf);
@@ -73,7 +77,14 @@ protected:
 
     /// @todo(CSCD70) Please complete this method.
 
-    return meet(MeetOperands);
+    DomainVal_t InitialVal;
+    if (MeetOperands.empty()) {
+      InitialVal = bc();
+    } else {
+      InitialVal = meet(MeetOperands);
+    }
+
+    return InitialVal;
   }
   /// @brief Get the list of basic blocks to which the meet operator will be
   ///        applied.
@@ -90,15 +101,23 @@ protected:
     MeetOperands_t Operands;
 
     /// @todo(CSCD70) Please complete this method.
+    for (const llvm::BasicBlock *PrevBB : getMeetBBConstRange(BB)) {
+      const llvm::Instruction *Ins = PrevBB->getTerminator();
+      Operands.push_back(InstDomainValMap.at(Ins));
+    }
 
     return Operands;
   }
   DomainVal_t bc() const { return DomainVal_t(DomainIdMap.size()); }
   DomainVal_t meet(const MeetOperands_t &MeetOperands) const {
-
+    TMeetOp MeetOp;
     /// @todo(CSCD70) Please complete this method.
+    DomainVal_t Result = MeetOp.top(DomainVector.size());
+    for(auto &I:MeetOperands){
+      Result = MeetOp(Result, I);
+    }
 
-    return DomainVal_t(DomainIdMap.size());
+    return Result;
   }
 
   /// @}
@@ -123,6 +142,13 @@ protected:
     bool Changed = false;
 
     /// @todo(CSCD70) Please complete this method.
+    for (auto &BB : getBBConstRange(F)) {
+      DomainVal_t IDV = getBoundaryVal(BB);
+      for (auto &Ins : getInstConstRange(BB)) {
+        Changed |= transferFunc(Ins, IDV, InstDomainValMap.at(&Ins));
+        IDV = InstDomainValMap.at(&Ins);
+      }
+    }
 
     return Changed;
   }
@@ -144,6 +170,16 @@ protected:
                                llvm::FunctionAnalysisManager &FAM) {
 
     /// @todo(CSCD70) Please complete this method.
+    TMeetOp MeetOp;
+    initValue(F);
+    for (auto &Ins : llvm::instructions(F)) {
+      InstDomainValMap.emplace(&Ins, MeetOp.top(DomainVector.size()));
+    }
+
+    while (traverseCFG(F)) {
+    }
+
+    printInstDomainValMap(F);
 
     return std::make_tuple(DomainIdMap, DomainVector, BVs, InstDomainValMap);
   }
@@ -163,6 +199,11 @@ struct Bool {
   Bool operator|(const Bool &Other) const {
     return {.Value = Value || Other.Value};
   }
+
+  bool operator==(const Bool &Other) const {
+    return this->Value == Other.Value;
+  }
+
   static Bool top() { return {.Value = true}; }
   explicit operator bool() const { return Value; }
 };

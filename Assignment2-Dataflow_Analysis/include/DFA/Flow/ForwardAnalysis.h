@@ -1,6 +1,9 @@
 #pragma once // NOLINT(llvm-header-guard)
 
 #include "Framework.h"
+#include "Utility.h"
+#include <llvm-16/llvm/IR/CFG.h>
+
 
 namespace dfa {
 
@@ -34,6 +37,7 @@ protected:
   using Framework_t::getName;
   using Framework_t::run;
   using Framework_t::stringifyDomainWithMask;
+  using Framework_t::getBoundaryVal;
 
   void printInstDomainValMap(const llvm::Instruction &Inst) const final {
     using llvm::errs;
@@ -42,7 +46,7 @@ protected:
 
     if (&Inst == &(ParentBB->front())) {
       errs() << "\n";
-      LOG_ANALYSIS_INFO << "\t" << stringifyDomainWithMask(BVs.at(ParentBB));
+      LOG_ANALYSIS_INFO << "\t" << stringifyDomainWithMask(getBoundaryVal(*ParentBB));
     } // if (&Inst == &(*ParentBB->begin()))
     outs() << Inst << "\n";
     LOG_ANALYSIS_INFO << "\t"
