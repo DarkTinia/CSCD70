@@ -2,12 +2,13 @@
 
 #include "DFA/Domain/Expression.h"
 #include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/CFG.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/PassManager.h>
 #include <llvm/Support/raw_ostream.h>
-
 #include <tuple>
+
 namespace dfa {
 
 template <typename TValue> struct ValuePrinter {
@@ -102,8 +103,10 @@ protected:
 
     /// @todo(CSCD70) Please complete this method.
     for (const llvm::BasicBlock *PrevBB : getMeetBBConstRange(BB)) {
-      const llvm::Instruction *Ins = PrevBB->getTerminator();
-      Operands.push_back(InstDomainValMap.at(Ins));
+
+      const llvm::Instruction &Ins =
+          *std::prev(getInstConstRange(*PrevBB).end());
+      Operands.push_back(InstDomainValMap.at(&Ins));
     }
 
     return Operands;
@@ -113,7 +116,7 @@ protected:
     TMeetOp MeetOp;
     /// @todo(CSCD70) Please complete this method.
     DomainVal_t Result = MeetOp.top(DomainVector.size());
-    for(auto &I:MeetOperands){
+    for (auto &I : MeetOperands) {
       Result = MeetOp(Result, I);
     }
 
@@ -165,7 +168,15 @@ protected:
   /// @return Whether the output domain value is to be changed.
   virtual bool transferFunc(const llvm::Instruction &Inst,
                             const DomainVal_t &IDV, DomainVal_t &ODV) = 0;
-
+  void transferFuncDebug(const llvm::Instruction &Inst, const DomainVal_t &IDV,
+                         DomainVal_t &ODV, bool Changed) {
+    llvm::outs() << "Instruction is:" << Inst << "\n";
+    for (long unsigned int I = 0; I < IDV.size(); I++) {
+      llvm::outs() << "IDV " << I << " is:" << IDV[I].Value << "\t ODV " << I
+                   << " is:" << ODV[I].Value << "\n";
+    }
+    llvm::outs() << "Result is: " << Changed << "\n";
+  }
   virtual AnalysisResult_t run(llvm::Function &F,
                                llvm::FunctionAnalysisManager &FAM) {
 

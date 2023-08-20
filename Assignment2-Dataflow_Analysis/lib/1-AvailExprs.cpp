@@ -1,7 +1,6 @@
 #include "DFA.h"
 #include "DFA/Domain/Expression.h"
 #include <cassert>
-#include <llvm-16/llvm/IR/InstrTypes.h>
 
 using namespace llvm;
 
@@ -25,7 +24,7 @@ bool AvailExprs::transferFunc(const Instruction &Inst, const DomainVal_t &IDV,
   /// @todo(CSCD70) Please complete this method.
 
   DomainVal_t TmpODV = IDV;
-  bool Result = false;
+  bool Changed = false;
 
   assert(IDV.size() == ODV.size());
   
@@ -37,20 +36,10 @@ bool AvailExprs::transferFunc(const Instruction &Inst, const DomainVal_t &IDV,
     }
   }
 
-  for (long unsigned int I = 0; I < IDV.size(); I++) {
-    if (TmpODV[I].Value != ODV[I].Value) {
-      Result = true;
-    }
-  }
-
+  Changed |= !(TmpODV==ODV);
   ODV = TmpODV;
 
-  // outs() << "Instruction is:" << Inst << "\n";
-  // for (long unsigned int I = 0; I < IDV.size(); I++) {
-  //   outs() << "IDV " << I << " is:" << IDV[I].Value << "\t ODV " << I
-  //          << " is:" << ODV[I].Value << "\n";
-  // }
-  // outs() << "Result is: " << Result << "\n";
+  // transferFuncDebug(Inst, IDV, ODV, Changed);
 
-  return Result;
+  return Changed;
 }
